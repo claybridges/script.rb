@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+
+# This shell script is generated using https://github.com/claybridges/script.rb.
+# See there for more info. This script exists to bootstrap script.rb in this 
+# directory, along with its dependencies as specified in the Gemfile. For now,
+# it is designed to work only on macOS.
+#
+# Compared with creating a ruby gem to encapsulate dependencies, this requires much
+# less configuration and ceremony. A basic version of this directory looks like this:
+#
+#   my-automated-task/
+#   ├── Gemfile
+#   ├── script.rb
+#   └── run
+#
+# Ideally, you should never need worry about this file, and it will
+# exist only as scaffolding. You make the magic happen by some variation of
+# `my-automated-task/run [args]`.
+
+set -e  # exit on fail
+
+## FUNCTIONS
+
+checkAndOrInstallStuffWeNeed() {
+  if ! which bundler >&/dev/null; then
+    echo "This script requires bundler. Run `gem install bundler` to install it."
+    echo "  See https://bundler.io for more info."
+    exit 1
+  fi
+
+  if ! which brew >&/dev/null; then
+    echo "This script requires brew. See https://brew.sh for installation instructions."
+    exit 1
+  fi
+
+  # Makes sure we have realpath installed, so we can use it to get thisPath
+  if ! which realpath >&/dev/null; then
+    echo "Installing coreutils/realpath"
+    brew install coreutils >&/dev/null
+  fi
+}
+
+# You should be in the directory with the Gemfile or .ruby-version
+# before running this. If rvm isn't installed, this noops; good luck!
+runRvmIfPossible() {
+  local found=0
+
+  # Install RVM functions in shell if found
+  for rvmScript in "$HOME/.rvm/scripts/rvm" /usr/local/rvm/scripts/rvm; do
+    if [ -s "$rvmScript" ]; then
+      source "$rvmScript"
+      found=1
+      break
+    fi
+  done
+
+  if [ $found = 1 ]; then
+    rvm use . --quiet
+  fi
+}
+
+## PREFLIGHT
+
+checkAndOrInstallStuffWeNeed
+
+thisFile="$0"
+thisPath="$( dirname "`realpath "$thisFile"`" )"
+cd "$thisPath"
+
+runRvmIfPossible
+
+## RUN RUBY SCRIPT
+
+bundle install --quiet
+bundle exec script.rb $@
